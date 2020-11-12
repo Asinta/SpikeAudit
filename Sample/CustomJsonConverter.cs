@@ -1,7 +1,6 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using Audit.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -19,46 +18,19 @@ namespace AuditSpike
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             JToken t = JToken.FromObject(value);
-            var jo = new JObject();
-            
+
             if (t.Type != JTokenType.Object)
             {
-                // t.WriteTo(writer);
-                jo.WriteTo(writer);
+                t.WriteTo(writer);
             }
             else
             {
-                if (value.GetType() == typeof(AuditEvent))
-                {
-                    var type = (value as AuditEvent).Target.Old.GetType();
-                    foreach (PropertyInfo propInfo in type.GetProperties())
-                    {
-                        if (propInfo.CanRead)
-                        {
-                            object propVal = propInfo.GetValue(value, null);
-                        
-                            Console.WriteLine($"propInfo: {propInfo}");
+                JObject o = (JObject)t;
+                IList<string> propertyNames = o.Properties().Select(p => p.Name).ToList();
 
-                            var cutomAttribute = propInfo.GetCustomAttribute<CustomAttribute>();
-                            if (cutomAttribute == null)
-                            {
-                                jo.Add(propInfo.Name, JToken.FromObject(new { propVal }, serializer));
-                            }
-                        }
-                    }
-                    
-                    jo.WriteTo(writer);
-                }
-                
-                
-                //
-                //
-                //
-                // IList<string> propertyNames = o.Properties().Select(p => p.Name).ToList();
-                //
-                // o.AddFirst(new JProperty("Keys", new JArray(propertyNames)));
-                //
-                // o.WriteTo(writer);
+                o.AddFirst(new JProperty("Keys", new JArray(propertyNames)));
+
+                o.WriteTo(writer);
             }
         }
 

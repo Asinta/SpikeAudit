@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Audit.Core;
@@ -11,6 +12,33 @@ namespace AuditSpike
 {
     public class CustomFileDataProvider : AuditDataProvider
     {
+        public override object Serialize<T>(T value)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+            
+            var jo = new JObject();
+            var serializer = JsonSerializer.Create(Configuration.JsonSettings);
+            
+            foreach (PropertyInfo propInfo in value.GetType().GetProperties())
+            {
+                if (propInfo.CanRead)
+                {
+                    object propVal = propInfo.GetValue(value, null);
+                        
+                    var cutomAttribute = propInfo.GetCustomAttribute<CustomAttribute>();
+                    if (cutomAttribute == null)
+                    {
+                        jo.Add(propInfo.Name, JToken.FromObject(propVal, serializer));
+                    }
+                }
+            }
+            
+            return JToken.FromObject(jo, serializer);
+        }
+
         public JsonSerializerSettings JsonSettings { get; set; } = new JsonSerializerSettings
         {
             Formatting = Formatting.Indented,
@@ -82,8 +110,9 @@ namespace AuditSpike
         public override object InsertEvent(AuditEvent auditEvent)
         {
             var fullPath = GetFilePath(auditEvent);
-            var converter = new CustomJsonConverter(typeof(AuditEvent));
-            var json = JsonConvert.SerializeObject(auditEvent, Formatting.Indented, converter);
+            var json = JsonConvert.SerializeObject(auditEvent, JsonSettings);
+            // var converter = new CustomJsonConverter(typeof(AuditEvent));
+            // var json = JsonConvert.SerializeObject(auditEvent, Formatting.Indented, converter);
             File.WriteAllText(fullPath, json);
             return fullPath;
         }
@@ -98,10 +127,13 @@ namespace AuditSpike
         public override void ReplaceEvent(object path, AuditEvent auditEvent)
         {
             var fullPath = path.ToString();
-            var converter = new CustomJsonConverter(typeof(AuditEvent));
-            var json = JsonConvert.SerializeObject(auditEvent, Formatting.Indented, converter);
+            var json = JsonConvert.SerializeObject(auditEvent, JsonSettings);
+            // var converter = new CustomJsonConverter(typeof(AuditEvent));
+            // var json = JsonConvert.SerializeObject(auditEvent, Formatting.Indented, converter);
             File.WriteAllText(fullPath, json);
         }
+        
+        
 
         public override T GetEvent<T>(object path)
         {

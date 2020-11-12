@@ -11,7 +11,7 @@ namespace AuditSpike
             using (var audit = AuditScope.Create("SAMPLE::test", () => sample))
             {
                 sample.Age = 0;
-                sample.Name = null;
+                sample.Name = "Jone";
                 sample.IsValid = false;
                 audit.Comment("this is a comment.");
             }

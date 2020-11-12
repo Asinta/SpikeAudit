@@ -20,7 +20,12 @@ namespace AuditSpike
                 .UseCustomProvider(new CustomFileDataProvider(config => config
                     .DirectoryBuilder(_ => "./")
                     .FilenameBuilder(auditEvent => $"{auditEvent.EventType}_{DateTime.Now.Ticks}.json")
-                    ));
+                    .JsonSettings(new JsonSerializerSettings
+                    {
+                        Formatting = Formatting.Indented,
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                        NullValueHandling = NullValueHandling.Include
+                    })));
         }
     }
 }
